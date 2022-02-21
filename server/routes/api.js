@@ -1,3 +1,10 @@
+const SDK = require("pioneer-javascript-sdk");
+
+// if the actual address has a path like localhost:3030/features, include that in the getServerAddress() method
+const scoutAddress = "http://localhost:3030";
+
+// the sdkKey that should match the sdkKey provided by Compass
+const sdkKey = "37420b76-7f13-48fe-a647-e976b4273b55";
 const express = require("express");
 const router = express.Router();
 const boardsController = require("../controllers/boardsController");
@@ -10,15 +17,29 @@ const {
   validateEditList,
 } = require("../validators/validators");
 
-router.get("/boards/:id", boardsController.getBoard);
+// makes an active sse connection
+const blah = async () => {
+  const config = await new SDK(scoutAddress, sdkKey).connect().withWaitForData();
+  const sdkClient = config.client;
 
-router.get("/boards", boardsController.getBoards);
+  router.get("/boards/:id", boardsController.getBoard);
 
-router.post("/boards", validateBoard, boardsController.createBoard);
+  if (sdkClient.getFeature("LOGIN_MICROSERVICE")) {
+    router.get("/boards", boardsController.getBoards);
+  } else {
+    router.get("/boards", () => console.log("here"));
+  }
 
-router.post("/lists", validateList, listsController.createList, boardsController.addListToBoard, listsController.sendList);
+  router.post("/boards", validateBoard, boardsController.createBoard);
 
-router.put("/lists/:id", validateEditList, listsController.editList, listsController.sendList);
+  router.post("/lists", validateList, listsController.createList, boardsController.addListToBoard, listsController.sendList);
+
+  router.put("/lists/:id", validateEditList, listsController.editList, listsController.sendList);
+}
+blah();
+
+
+
 
 // router.post("/cards", validateCard, cardsController.createCard);
 
